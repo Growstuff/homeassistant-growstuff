@@ -1,0 +1,14 @@
+{
+  "domain": "growstuff",
+  "name": "Growstuff.org integration",
+  "version": "0.0.1",
+  "documentation": "https://github.com/Growstuff/homeassistant-growstuff/",
+  "dependencies": [],
+  "codeowners": [
+    "@CloCkWeRX", "@Br3nda"
+  ],
+  "issue_tracker": "https://github.com/Growstuff/homeassistant-growstuff/issues",
+  "requirements": [],
+  "config_flow": true,
+  "iot_class": "sensor"
+}
