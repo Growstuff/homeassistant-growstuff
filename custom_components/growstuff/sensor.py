@@ -15,7 +15,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         api_url=_API_URL,
         member=config.get('member'))
 
-    member = requests.get(member_url).json().get('data')[0]
+    member_result = requests.get(member_url).json().data()
+
+    if len(member_result) == 0:
+       raise homeassistant.exceptions.ConfigEntryNotReady("Member not found, check configuration")
+
+    member = member_result[0]
     plantings_url = "{api_url}/members/{member_id}/plantings{filters}".format(
         api_url=_API_URL,
         member_id=member.get('id'),
