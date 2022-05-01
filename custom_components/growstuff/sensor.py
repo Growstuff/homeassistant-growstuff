@@ -24,8 +24,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         )
 
     member = member_result[0]
-    plantings_url = "{api_url}/members/{member_id}/plantings{filters}".format(
-        api_url=_API_URL, member_id=member.get("id"), filters="?filter[finished]=false"
+    plantings_url = "{api_url}/plantings?filter[owner-id]={member_id}&filter[finished]=false".format(
+        api_url=_API_URL, member_id=member.get("id")
     )
 
     add_plantings(plantings_url, add_devices)
