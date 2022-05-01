@@ -16,6 +16,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     )
 
     member_result = requests.get(member_url).json().get('data')
+    _LOGGER.debug("Fetching " + member_url)
 
     if len(member_result) == 0:
         raise homeassistant.exceptions.ConfigEntryNotReady(
@@ -32,6 +33,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
 def add_plantings(plantings_url, add_devices):
     """Add plantings until we added them all."""
+    _LOGGER.debug("Fetching " + plantings_url)
     response = requests.get(plantings_url).json()
     devices = []
     for planting in response.get("data"):
@@ -106,5 +108,6 @@ class GrowstuffPlantingSensor(Entity):
 
     def update(self):
         """Get the latest data from Growstuff and update the states."""
+        _LOGGER.debug("Fetching " + self._url())
         response = requests.get(self._url())
         self.__init__(response.json().get("data"))
