@@ -74,11 +74,6 @@ class GrowstuffPlantingSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "growstuff_{name}".format(name=self._attributes.get("slug"))
-
-    @property
-    def friendly_name(self):
-        """The crop is used as the friendly name."""
         return self._attributes.get("crop-name")
 
     @property
