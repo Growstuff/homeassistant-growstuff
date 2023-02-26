@@ -50,7 +50,7 @@ class GrowstuffPlantingEntity(Entity):
         return {
             "identifiers": {
                 # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, f"local_{self._attributes.get("slug")")
+                (DOMAIN, f"local_{self._attributes.get("slug")}")
             },
             "name": self.name,
             "manufacturer": "Growstuff",
