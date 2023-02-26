@@ -6,7 +6,7 @@ from homeassistant.helpers.entity import Entity
 
 _API_URL = "https://www.growstuff.org/api/v1"
 _LOGGER = logging.getLogger("growstuff")
-
+DOMAIN = "growstuff"
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up all plantings."""
