@@ -4,7 +4,6 @@ import requests
 
 from homeassistant.helpers.entity import Entity
 
-_ICON = "mdi:leaf"
 _API_URL = "https://www.growstuff.org/api/v1"
 _LOGGER = logging.getLogger("growstuff")
 
@@ -43,9 +42,28 @@ def add_plantings(plantings_url, add_devices):
     if links.get("next"):
         add_plantings(links.get("next"), add_devices)
 
+# Device
+class GrowstuffPlantingEntity(Entity):
+    @property
+    def device_info(self):
+        """Return device information for the device registry."""
+        return {
+            "identifiers": {
+                # Serial numbers are unique identifiers within a specific domain
+                (DOMAIN, f"local_{self._attributes.get("slug")")
+            },
+            "name": self.name,
+            "manufacturer": "Growstuff",
+            "model": "Planting",
+            "sw_version": 1.0,
+        }
 
-class GrowstuffPlantingSensor(Entity):
+# Specific sensor
+class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     """Grow stuff."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:sprout"
 
     def __init__(self, planting):
         """Initialize the sensor."""
@@ -53,18 +71,6 @@ class GrowstuffPlantingSensor(Entity):
         self._links = planting.get("links")
         self._attributes = planting.get("attributes")
         self._relationships = planting.get("relationships")
-
-    # def update(self):
-    #     """Fetch new state data for the sensor.
-
-    #     This is the only method that should fetch new data for Home Assistant.
-    #     """
-    #     plantings_url = "{api_url}/planting/{planting_id}".format(
-    #         api_url=_API_URL,
-    #         planting_id=self.planting_id)
-    #     response = requests.get(plantings_url).json()
-    #     planting_data = response.get('data')
-    #     self._attributes = planting_data.get('attributes')
 
     @property
     def unique_id(self):
