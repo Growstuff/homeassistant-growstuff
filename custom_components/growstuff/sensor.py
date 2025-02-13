@@ -1,4 +1,5 @@
 """HA component to import plantings status from growstuff.org."""
+
 import logging
 import requests
 
@@ -6,6 +7,7 @@ from homeassistant.helpers.entity import Entity
 from .const import DOMAIN, _API_URL
 
 _LOGGER = logging.getLogger("growstuff")
+
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up all plantings."""
@@ -41,6 +43,7 @@ def add_plantings(plantings_url, add_devices):
     if links.get("next"):
         add_plantings(links.get("next"), add_devices)
 
+
 # Device
 class GrowstuffPlantingEntity(Entity):
     @property
@@ -56,6 +59,7 @@ class GrowstuffPlantingEntity(Entity):
             "model": "Planting",
             "sw_version": 1.0,
         }
+
 
 # Specific sensor
 class GrowstuffPlantingSensor(GrowstuffPlantingEntity):

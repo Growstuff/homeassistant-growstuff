@@ -1,4 +1,5 @@
 """Config flow for Growstuff integration."""
+
 from __future__ import annotations
 
 import logging
@@ -16,12 +17,13 @@ _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema({("member"): str})
 
+
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     """Validate the user input allows us to connect.
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
     # Validate the data can be used to set up a connection.
-    
+
     # if len(data["member"]) < 3:
     #    raise InvalidHost
 
