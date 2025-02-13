@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: AcmedaConfigEntry,
+    config_entry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up all plantings."""
