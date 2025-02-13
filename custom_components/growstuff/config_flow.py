@@ -11,7 +11,6 @@ from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN  # pylint:disable=unused-import
-from .hub import Hub
 
 _LOGGER = logging.getLogger(__name__)
 
