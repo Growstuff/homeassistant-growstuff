@@ -3,10 +3,9 @@ import logging
 import requests
 
 from homeassistant.helpers.entity import Entity
+from .const import DOMAIN, _API_URL
 
-_API_URL = "https://www.growstuff.org/api/v1"
 _LOGGER = logging.getLogger("growstuff")
-DOMAIN = "growstuff"
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up all plantings."""
