@@ -11,5 +11,6 @@
   "requirements": [],
   "config_flow": true,
   "quality_scale": "legacy",
-  "iot_class": "sensor"
+  "iot_class": "sensor",
+  "integration_type": "device"
 }
