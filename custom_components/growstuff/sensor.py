@@ -3,13 +3,23 @@
 import logging
 import requests
 
+from homeassistant.components.sensor import SensorEntity
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.entity import Entity
 from .const import DOMAIN, _API_URL
 
 _LOGGER = logging.getLogger("growstuff")
 
 
-def setup_platform(hass, config, add_devices, discovery_info=None):
+def setup_platform(
+    hass: HomeAssistant,
+    config: ConfigType,
+    add_entities: AddEntitiesCallback,
+    discovery_info: DiscoveryInfoType | None = None,
+) -> None:
     """Set up all plantings."""
     member_url = "{api_url}/members?filter[login-name]={member}".format(
         api_url=_API_URL, member=config.get("member")
@@ -28,24 +38,24 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         api_url=_API_URL, member_id=member.get("id")
     )
 
-    add_plantings(plantings_url, add_devices)
+    add_plantings(plantings_url, add_entities)
 
 
-def add_plantings(plantings_url, add_devices):
+def add_plantings(plantings_url, add_entities):
     """Add plantings until we added them all."""
     _LOGGER.debug("Fetching " + plantings_url)
     response = requests.get(plantings_url).json()
-    devices = []
+    entities = []
     for planting in response.get("data"):
-        devices.append(GrowstuffPlantingSensor(planting))
-    add_devices(devices)
+        entities.append(GrowstuffPlantingSensor(planting))
+    add_entities(entities)
     links = response.get("links")
     if links.get("next"):
-        add_plantings(links.get("next"), add_devices)
+        add_plantings(links.get("next"), add_entities)
 
 
 # Device
-class GrowstuffPlantingEntity(Entity):
+class GrowstuffPlantingEntity(SensorEntity):
     @property
     def device_info(self):
         """Return device information for the device registry."""
