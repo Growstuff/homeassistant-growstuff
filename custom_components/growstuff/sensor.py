@@ -14,11 +14,10 @@ from .const import DOMAIN, _API_URL
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_platform(
+async def async_setup_entry(
     hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
+    config_entry: AcmedaConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up all plantings."""
     member_url = "{api_url}/members?filter[login-name]={member}".format(
@@ -38,20 +37,20 @@ def setup_platform(
         api_url=_API_URL, member_id=member.get("id")
     )
 
-    add_plantings(plantings_url, add_entities)
+    add_plantings(plantings_url, async_add_entities)
 
 
-def add_plantings(plantings_url, add_entities):
+def add_plantings(plantings_url, async_add_entities):
     """Add plantings until we added them all."""
     _LOGGER.debug("Fetching " + plantings_url)
     response = requests.get(plantings_url).json()
     entities = []
     for planting in response.get("data"):
         entities.append(GrowstuffPlantingSensor(planting))
-    add_entities(entities)
+    async_add_entities(entities)
     links = response.get("links")
     if links.get("next"):
-        add_plantings(links.get("next"), add_entities)
+        add_plantings(links.get("next"), async_add_entities)
 
 
 # Device
