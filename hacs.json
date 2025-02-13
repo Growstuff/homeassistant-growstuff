@@ -1,6 +1,7 @@
 {
   "name": "Growstuff",
   "domains": ["sensor"],
-  "homeassistant": "0.116.0",
-  "iot_class": ["Polling"]
+  "homeassistant": "2023.9.0",
+  "iot_class": ["Polling"],
+  "render_readme": true
 }
