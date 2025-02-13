@@ -11,7 +11,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.entity import Entity
 from .const import DOMAIN, _API_URL
 
-_LOGGER = logging.getLogger("growstuff")
+_LOGGER = logging.getLogger(__name__)
 
 
 def setup_platform(
