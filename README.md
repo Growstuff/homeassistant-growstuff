@@ -22,12 +22,20 @@ Welcome to the **Growstuff Home Assistant Integration** repository! This project
 - Basic knowledge of Home Assistant configurations.
 
 ### Installation
+### Install this integration
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/growstuff/growstuff-homeassistant.git
-   ```
-2. Copy the directory to /usr/share/hassio/homeassitant/custom_components
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+
+#### Via HACS
+* Add this repo as a ["Custom repository"](https://hacs.xyz/docs/faq/custom_repositories/) with type "Integration"
+* Click "Install" in the new "Home Assistant Plant" card in HACS.
+* Install
+* Restart Home Assistant
+
+#### Manual Installation
+* Copy the entire `custom_components/homeassistant-growstuff/` directory to your server's `<config>/custom_components` directory
+* Restart Home Assistant
+
 
 ---
 
