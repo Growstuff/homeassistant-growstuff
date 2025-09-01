@@ -28,7 +28,6 @@ Welcome to the **Growstuff Home Assistant Integration** repository! This project
 
 #### Via HACS
 * Add this repo as a ["Custom repository"](https://hacs.xyz/docs/faq/custom_repositories/) with type "Integration"
-* Click "Install" in the new "Home Assistant Plant" card in HACS.
 * Install
 * Restart Home Assistant
 
