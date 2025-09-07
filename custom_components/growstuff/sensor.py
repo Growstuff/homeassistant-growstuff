@@ -1,14 +1,15 @@
 """HA component to import plantings status from growstuff.org."""
 
 import logging
-import requests
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+import homeassistant.exceptions
 
 from homeassistant.components.sensor import SensorEntity
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.helpers.entity import Entity
+from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN, _API_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,16 +17,21 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up all plantings."""
-    member_url = "{api_url}/members?filter[login-name]={member}".format(
-        api_url=_API_URL, member=config.get("member")
-    )
+    session = async_get_clientsession(hass)
+    member_name = config_entry.data.get("member")
+    member_url = f"{_API_URL}/members?filter[login-name]={member_name}"
 
-    member_result = requests.get(member_url).json().get("data")
     _LOGGER.debug("Fetching " + member_url)
+    async with session.get(member_url) as response:
+        if response.status != 200:
+            raise homeassistant.exceptions.ConfigEntryNotReady(
+                f"Member not found, check configuration: {response.status}"
+            )
+        member_result = (await response.json()).get("data")
 
     if len(member_result) == 0:
         raise homeassistant.exceptions.ConfigEntryNotReady(
@@ -33,24 +39,27 @@ async def async_setup_entry(
         )
 
     member = member_result[0]
-    plantings_url = "{api_url}/plantings?filter[owner-id]={member_id}&filter[finished]=false".format(
-        api_url=_API_URL, member_id=member.get("id")
-    )
+    plantings_url = f"{_API_URL}/plantings?filter[owner-id]={member.get('id')}&filter[finished]=false"
 
-    add_plantings(plantings_url, async_add_entities)
+    await add_plantings(plantings_url, async_add_entities, session)
 
 
-def add_plantings(plantings_url, async_add_entities):
+async def add_plantings(plantings_url, async_add_entities, session):
     """Add plantings until we added them all."""
     _LOGGER.debug("Fetching " + plantings_url)
-    response = requests.get(plantings_url).json()
+    async with session.get(plantings_url) as response:
+        if response.status != 200:
+            _LOGGER.error(f"Failed to fetch plantings: {response.status}")
+            return
+        data = await response.json()
+
     entities = []
-    for planting in response.get("data"):
-        entities.append(GrowstuffPlantingSensor(planting))
+    for planting in data.get("data"):
+        entities.append(GrowstuffPlantingSensor(planting, session))
     async_add_entities(entities)
-    links = response.get("links")
+    links = data.get("links")
     if links.get("next"):
-        add_plantings(links.get("next"), async_add_entities)
+        await add_plantings(links.get("next"), async_add_entities, session)
 
 
 # Device
@@ -60,13 +69,12 @@ class GrowstuffPlantingEntity(SensorEntity):
         """Return device information for the device registry."""
         return {
             "identifiers": {
-                # Serial numbers are unique identifiers within a specific domain
                 (DOMAIN, self._attributes.get("slug"))
             },
             "name": self.name,
             "manufacturer": "Growstuff",
             "model": "Planting",
-            "sw_version": 1.0,
+            "sw_version": "0.0.1",
         }
 
 
@@ -77,12 +85,13 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:sprout"
 
-    def __init__(self, planting):
+    def __init__(self, planting, session):
         """Initialize the sensor."""
         self.planting_id = planting.get("id")
         self._links = planting.get("links")
         self._attributes = planting.get("attributes")
         self._relationships = planting.get("relationships")
+        self._session = session
 
     @property
     def unique_id(self):
@@ -100,9 +109,10 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
         percent = self._attributes.get("percentage-grown")
         if isinstance(percent, float):
             return round(percent, 2)
+        return None
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return the state attributes."""
         return self._attributes
 
@@ -119,8 +129,13 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
         """Return the unit this state is expressed in."""
         return "%"
 
-    def update(self):
+    async def async_update(self):
         """Get the latest data from Growstuff and update the states."""
         _LOGGER.debug("Fetching " + self._url())
-        response = requests.get(self._url())
-        self.__init__(response.json().get("data"))
+        async with self._session.get(self._url()) as response:
+            if response.status == 200:
+                data = await response.json()
+                planting = data.get("data")
+                self._links = planting.get("links")
+                self._attributes = planting.get("attributes")
+                self._relationships = planting.get("relationships")
