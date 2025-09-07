@@ -10,7 +10,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
-from .const import DOMAIN, _API_URL
+from .const import DOMAIN, _API_URL, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up all plantings."""
+    """Set up all entities."""
     session = async_get_clientsession(hass)
     member_name = config_entry.data.get("member")
     member_url = f"{_API_URL}/members?filter[login-name]={member_name}"
@@ -39,31 +39,78 @@ async def async_setup_entry(
         )
 
     member = member_result[0]
-    plantings_url = f"{_API_URL}/plantings?filter[owner-id]={member.get('id')}&filter[finished]=false"
+    member_id = member.get("id")
 
-    await add_plantings(plantings_url, async_add_entities, session)
+    for entity_type in SENSOR_TYPES:
+        url = f"{_API_URL}/{entity_type}?filter[owner-id]={member_id}"
+        if entity_type == "plantings":
+            url += "&filter[finished]=false"
+        await add_entities_for_type(url, entity_type, async_add_entities, session)
 
 
-async def add_plantings(plantings_url, async_add_entities, session):
-    """Add plantings until we added them all."""
-    _LOGGER.debug("Fetching " + plantings_url)
-    async with session.get(plantings_url) as response:
+async def add_entities_for_type(url, entity_type, async_add_entities, session):
+    """Add entities for a given type until we added them all."""
+    _LOGGER.debug(f"Fetching {entity_type} from {url}")
+    async with session.get(url) as response:
         if response.status != 200:
-            _LOGGER.error(f"Failed to fetch plantings: {response.status}")
+            _LOGGER.error(f"Failed to fetch {entity_type}: {response.status}")
             return
         data = await response.json()
 
     entities = []
-    for planting in data.get("data"):
-        entities.append(GrowstuffPlantingSensor(planting, session))
+    for item in data.get("data"):
+        if entity_type == "plantings":
+            entities.append(GrowstuffPlantingSensor(item, session))
+        elif entity_type == "gardens":
+            entities.append(GrowstuffGardenSensor(item, session))
+        elif entity_type == "harvests":
+            entities.append(GrowstuffHarvestSensor(item, session))
+        elif entity_type == "seeds":
+            entities.append(GrowstuffSeedSensor(item, session))
+
     async_add_entities(entities)
     links = data.get("links")
-    if links.get("next"):
-        await add_plantings(links.get("next"), async_add_entities, session)
+    if "next" in links and links.get("next"):
+        await add_entities_for_type(links.get("next"), entity_type, async_add_entities, session)
 
+
+class GrowstuffEntity(SensorEntity):
+    """Base class for Growstuff entities."""
+
+    def __init__(self, data, session):
+        """Initialize the sensor."""
+        self.entity_id = data.get("id")
+        self._links = data.get("links")
+        self._attributes = data.get("attributes")
+        self._relationships = data.get("relationships")
+        self._session = session
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        return self._attributes
+
+    def _url(self):
+        return self._links.get("self")
+
+    @property
+    def entity_picture(self):
+        """Icon to use in the frontend, if any."""
+        return self._attributes.get("thumbnail")
+
+    async def async_update(self):
+        """Get the latest data from Growstuff and update the states."""
+        _LOGGER.debug("Fetching " + self._url())
+        async with self._session.get(self._url()) as response:
+            if response.status == 200:
+                data = await response.json()
+                item = data.get("data")
+                self._links = item.get("links")
+                self._attributes = item.get("attributes")
+                self._relationships = item.get("relationships")
 
 # Device
-class GrowstuffPlantingEntity(SensorEntity):
+class GrowstuffPlantingEntity(GrowstuffEntity):
     @property
     def device_info(self):
         """Return device information for the device registry."""
@@ -87,11 +134,7 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
 
     def __init__(self, planting, session):
         """Initialize the sensor."""
-        self.planting_id = planting.get("id")
-        self._links = planting.get("links")
-        self._attributes = planting.get("attributes")
-        self._relationships = planting.get("relationships")
-        self._session = session
+        super().__init__(planting, session)
 
     @property
     def unique_id(self):
@@ -112,30 +155,90 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
         return None
 
     @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        return self._attributes
-
-    def _url(self):
-        return self._links.get("self")
-
-    @property
-    def entity_picture(self):
-        """Icon to use in the frontend, if any."""
-        return self._attributes.get("thumbnail")
-
-    @property
     def unit_of_measurement(self):
         """Return the unit this state is expressed in."""
         return "%"
 
-    async def async_update(self):
-        """Get the latest data from Growstuff and update the states."""
-        _LOGGER.debug("Fetching " + self._url())
-        async with self._session.get(self._url()) as response:
-            if response.status == 200:
-                data = await response.json()
-                planting = data.get("data")
-                self._links = planting.get("links")
-                self._attributes = planting.get("attributes")
-                self._relationships = planting.get("relationships")
+
+class GrowstuffGardenSensor(GrowstuffEntity):
+    """Growstuff Garden Sensor."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:flower"
+
+    def __init__(self, garden, session):
+        """Initialize the sensor."""
+        super().__init__(garden, session)
+
+    @property
+    def unique_id(self):
+        """Return the ID of the sensor."""
+        return self.entity_id
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._attributes.get("name")
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        # The API doesn't provide a direct state for gardens, so we'll use the name.
+        return self._attributes.get("name")
+
+
+class GrowstuffHarvestSensor(GrowstuffEntity):
+    """Growstuff Harvest Sensor."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:food-apple"
+
+    def __init__(self, harvest, session):
+        """Initialize the sensor."""
+        super().__init__(harvest, session)
+
+    @property
+    def unique_id(self):
+        """Return the ID of the sensor."""
+        return self.entity_id
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"Harvest {self.entity_id}"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._attributes.get("weight_quantity")
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit this state is expressed in."""
+        return self._attributes.get("weight_unit")
+
+
+class GrowstuffSeedSensor(GrowstuffEntity):
+    """Growstuff Seed Sensor."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:seed"
+
+    def __init__(self, seed, session):
+        """Initialize the sensor."""
+        super().__init__(seed, session)
+
+    @property
+    def unique_id(self):
+        """Return the ID of the sensor."""
+        return self.entity_id
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._attributes.get("description") or f"Seed {self.entity_id}"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._attributes.get("quantity")
