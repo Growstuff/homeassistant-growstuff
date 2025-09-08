@@ -79,7 +79,7 @@ class GrowstuffEntity(SensorEntity):
 
     def __init__(self, data, session):
         """Initialize the sensor."""
-        self.entity_id = data.get("id")
+        self.entity_id = "growstuff_" + data.get("id")
         self._links = data.get("links")
         self._attributes = data.get("attributes")
         self._relationships = data.get("relationships")
@@ -96,7 +96,8 @@ class GrowstuffEntity(SensorEntity):
     @property
     def entity_picture(self):
         """Icon to use in the frontend, if any."""
-        return self._attributes.get("thumbnail")
+        if self._attributes.get("thumbnail"):
+            return "https://growstuff.org/" +self._attributes.get("thumbnail")
 
     async def async_update(self):
         """Get the latest data from Growstuff and update the states."""
