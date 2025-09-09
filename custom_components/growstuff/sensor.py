@@ -135,10 +135,10 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:sprout"
 
-    def __init__(self, planting, session):
+    def __init__(self, data, session):
         """Initialize the sensor."""
         super().__init__(planting, session)
-        self.entity_id = "sensor.planting_" + data.get("id")
+        self.entity_id = "sensor.planting_" + planting.get("id")
 
     @property
     def unique_id(self):
@@ -173,7 +173,7 @@ class GrowstuffGardenSensor(GrowstuffEntity):
     def __init__(self, garden, session):
         """Initialize the sensor."""
         super().__init__(garden, session)
-        self.entity_id = "sensor.garden_" + data.get("id")
+        self.entity_id = "sensor.garden_" + garden.get("id")
 
     @property
     def unique_id(self):
@@ -201,7 +201,7 @@ class GrowstuffHarvestSensor(GrowstuffEntity):
     def __init__(self, harvest, session):
         """Initialize the sensor."""
         super().__init__(harvest, session)
-        self.entity_id = "sensor.harvest_" + data.get("id")
+        self.entity_id = "sensor.harvest_" + harvest.get("id")
 
     @property
     def unique_id(self):
@@ -233,7 +233,7 @@ class GrowstuffSeedSensor(GrowstuffEntity):
     def __init__(self, seed, session):
         """Initialize the sensor."""
         super().__init__(seed, session)
-        self.entity_id = "sensor.seed_" + data.get("id")
+        self.entity_id = "sensor.seed_" + seed.get("id")
 
     @property
     def unique_id(self):
@@ -256,10 +256,10 @@ class GrowstuffActivitySensor(GrowstuffEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:todo"
 
-    def __init__(self, seed, session):
+    def __init__(self, activity, session):
         """Initialize the sensor."""
-        super().__init__(seed, session)
-        self.entity_id = "sensor.activity_" + data.get("id")
+        super().__init__(activity, session)
+        self.entity_id = "sensor.activity_" + activity.get("id")
 
     @property
     def unique_id(self):
