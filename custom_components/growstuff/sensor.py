@@ -67,6 +67,8 @@ async def add_entities_for_type(url, entity_type, async_add_entities, session):
             entities.append(GrowstuffHarvestSensor(item, session))
         elif entity_type == "seeds":
             entities.append(GrowstuffSeedSensor(item, session))
+        elif entity_type == "activities":
+            entities.append(GrowstuffActivitySensor(item, session))
 
     async_add_entities(entities)
     links = data.get("links")
@@ -243,3 +245,28 @@ class GrowstuffSeedSensor(GrowstuffEntity):
     def state(self):
         """Return the state of the sensor."""
         return self._attributes.get("quantity")
+
+class GrowstuffActivitySensor(GrowstuffEntity):
+    """Growstuff Activity Sensor."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:todo"
+
+    def __init__(self, seed, session):
+        """Initialize the sensor."""
+        super().__init__(seed, session)
+
+    @property
+    def unique_id(self):
+        """Return the ID of the sensor."""
+        return self.entity_id
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._attributes.get("description") or f"Activity {self.entity_id}"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._attributes.get("finished")
