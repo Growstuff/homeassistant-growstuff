@@ -1,6 +1,6 @@
 """Todo platform for the Growstuff integration."""
 from __future__ import annotations
-
+from datetime import datetime
 import logging
 from typing import cast
 
@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.exceptions
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, _API_URL
 from .entity import GrowstuffEntity
@@ -59,7 +60,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
         """Initialize the sensor."""
         self._member_id = member_id
         self._session = session
-        self._attr_name = "Growstuff"
+        self._attr_name = "Growstuff Gardening Activities"
         self._attr_unique_id = f"growstuff_{member_id}_todo"
         self._items: list[TodoItem] = []
 
@@ -67,6 +68,39 @@ class GrowstuffTodoListEntity(TodoListEntity):
     def todo_items(self) -> list[TodoItem] | None:
         """Get the todo items."""
         return self._items
+
+    async def async_create_todo_item(self, item: TodoItem) -> None:
+        """Create a new todo item."""
+        raise NotImplementedError()
+
+    async def async_update_todo_item(self, item: TodoItem) -> None:
+        """Update a todo item."""
+        uid = item.uid
+        url = f"{_API_URL}/activities/{uid}"
+        payload = {
+            "data": {
+                "type": "activities",
+                "id": uid,
+                "attributes": {
+                    "finished": item.status == TodoItemStatus.COMPLETED,
+                },
+            }
+        }
+        async with self._session.patch(url, json=payload) as response:
+            if response.status != 200:
+                _LOGGER.error(f"Failed to update activity: {response.status}")
+                return
+            await self.async_update()
+
+    async def async_delete_todo_items(self, uids: list[str]) -> None:
+        """Delete todo items."""
+        for uid in uids:
+            url = f"{_API_URL}/activities/{uid}"
+            async with self._session.delete(url) as response:
+                if response.status != 204:
+                    _LOGGER.error(f"Failed to delete activity: {response.status}")
+                    return
+        await self.async_update()
 
     async def async_update(self) -> None:
         """Update the items in the todo list."""
@@ -80,6 +114,10 @@ class GrowstuffTodoListEntity(TodoListEntity):
                 data = await response.json()
             for item in data.get("data", []):
                 attributes = item.get("attributes", {})
+                due = None
+                if due_date := attributes.get("due-date"):
+                    due = datetime.fromisoformat(due_date).date()
+
                 if attributes.get("finished"):
                     status = TodoItemStatus.COMPLETED
                 else:
@@ -89,6 +127,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
                         uid=item.get("id"),
                         summary=attributes.get("description"),
                         status=status,
+                        due=due,
                     )
                 )
             links = data.get("links", {})
