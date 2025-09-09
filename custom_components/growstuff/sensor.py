@@ -59,10 +59,8 @@ async def async_setup_entry(
                 gardens[garden.get("id")] = device
 
     for entity_type in SENSOR_TYPES:
-        if entity_type == "gardens":
-            continue
         url = f"{_API_URL}/{entity_type}?filter[owner-id]={member_id}"
-        if entity_type == "plantings":
+        if entity_type == "plantings" or entity_type == "activities" or entity_type == "seeds":
             url += "&filter[finished]=false"
         await add_entities_for_type(
             url, entity_type, async_add_entities, session, gardens
