@@ -7,7 +7,6 @@ _API_URL = "https://www.growstuff.org/api/v1"
 PLATFORMS = [Platform.SENSOR, Platform.TODO]
 
 SENSOR_TYPES = {
-    "gardens": "Gardens",
     "harvests": "Harvests",
     "seeds": "Seeds",
     "plantings": "Plantings",
