@@ -81,7 +81,7 @@ class GrowstuffEntity(SensorEntity):
 
     def __init__(self, data, session):
         """Initialize the sensor."""
-        self.entity_id = "growstuff_" + data.get("id")
+        self.entity_id = "sensor.growstuff_" + data.get("id")
         self._links = data.get("links")
         self._attributes = data.get("attributes")
         self._relationships = data.get("relationships")
