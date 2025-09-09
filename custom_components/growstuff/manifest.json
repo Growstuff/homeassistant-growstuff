@@ -12,5 +12,6 @@
   "config_flow": true,
   "quality_scale": "legacy",
   "iot_class": "cloud_polling",
-  "integration_type": "service"
+  "integration_type": "service",
+  "platforms": ["sensor", "todo"]
 }
