@@ -138,6 +138,7 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     def __init__(self, planting, session):
         """Initialize the sensor."""
         super().__init__(planting, session)
+        self.entity_id = "sensor.planting_" + data.get("id")
 
     @property
     def unique_id(self):
@@ -172,6 +173,7 @@ class GrowstuffGardenSensor(GrowstuffEntity):
     def __init__(self, garden, session):
         """Initialize the sensor."""
         super().__init__(garden, session)
+        self.entity_id = "sensor.garden_" + data.get("id")
 
     @property
     def unique_id(self):
@@ -199,6 +201,7 @@ class GrowstuffHarvestSensor(GrowstuffEntity):
     def __init__(self, harvest, session):
         """Initialize the sensor."""
         super().__init__(harvest, session)
+        self.entity_id = "sensor.harvest_" + data.get("id")
 
     @property
     def unique_id(self):
@@ -230,6 +233,7 @@ class GrowstuffSeedSensor(GrowstuffEntity):
     def __init__(self, seed, session):
         """Initialize the sensor."""
         super().__init__(seed, session)
+        self.entity_id = "sensor.seed_" + data.get("id")
 
     @property
     def unique_id(self):
@@ -255,6 +259,7 @@ class GrowstuffActivitySensor(GrowstuffEntity):
     def __init__(self, seed, session):
         """Initialize the sensor."""
         super().__init__(seed, session)
+        self.entity_id = "sensor.activity_" + data.get("id")
 
     @property
     def unique_id(self):
