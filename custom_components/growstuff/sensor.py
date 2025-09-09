@@ -2,6 +2,7 @@
 
 import logging
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers import device_registry as dr
 
 import homeassistant.exceptions
 
@@ -41,14 +42,36 @@ async def async_setup_entry(
     member = member_result[0]
     member_id = member.get("id")
 
+    device_registry = dr.async_get(hass)
+    gardens_url = f"{_API_URL}/gardens?filter[owner-id]={member_id}"
+    gardens = {}
+    async with session.get(gardens_url) as response:
+        if response.status == 200:
+            data = await response.json()
+            for garden in data.get("data"):
+                device = device_registry.async_get_or_create(
+                    config_entry_id=config_entry.entry_id,
+                    identifiers={(DOMAIN, garden.get("id"))},
+                    name=garden.get("attributes").get("name"),
+                    manufacturer="Growstuff",
+                    suggested_area=garden.get("attributes").get("name"),
+                )
+                gardens[garden.get("id")] = device
+
     for entity_type in SENSOR_TYPES:
+        if entity_type == "gardens":
+            continue
         url = f"{_API_URL}/{entity_type}?filter[owner-id]={member_id}"
         if entity_type == "plantings":
             url += "&filter[finished]=false"
-        await add_entities_for_type(url, entity_type, async_add_entities, session)
+        await add_entities_for_type(
+            url, entity_type, async_add_entities, session, gardens
+        )
 
 
-async def add_entities_for_type(url, entity_type, async_add_entities, session):
+async def add_entities_for_type(
+    url, entity_type, async_add_entities, session, gardens
+):
     """Add entities for a given type until we added them all."""
     _LOGGER.debug(f"Fetching {entity_type} from {url}")
     async with session.get(url) as response:
@@ -60,9 +83,8 @@ async def add_entities_for_type(url, entity_type, async_add_entities, session):
     entities = []
     for item in data.get("data"):
         if entity_type == "plantings":
-            entities.append(GrowstuffPlantingSensor(item, session))
-        elif entity_type == "gardens":
-            entities.append(GrowstuffGardenSensor(item, session))
+            garden_id = item.get("relationships").get("garden").get("data").get("id")
+            entities.append(GrowstuffPlantingSensor(item, session, gardens.get(garden_id)))
         elif entity_type == "harvests":
             entities.append(GrowstuffHarvestSensor(item, session))
         elif entity_type == "seeds":
@@ -73,7 +95,9 @@ async def add_entities_for_type(url, entity_type, async_add_entities, session):
     async_add_entities(entities)
     links = data.get("links")
     if "next" in links and links.get("next"):
-        await add_entities_for_type(links.get("next"), entity_type, async_add_entities, session)
+        await add_entities_for_type(
+            links.get("next"), entity_type, async_add_entities, session, gardens
+        )
 
 
 class GrowstuffEntity(SensorEntity):
@@ -114,18 +138,24 @@ class GrowstuffEntity(SensorEntity):
 
 # Device
 class GrowstuffPlantingEntity(GrowstuffEntity):
+    def __init__(self, data, session, garden_device=None):
+        """Initialize the sensor."""
+        super().__init__(data, session)
+        self._garden_device = garden_device
+
     @property
     def device_info(self):
         """Return device information for the device registry."""
-        return {
-            "identifiers": {
-                (DOMAIN, self._attributes.get("slug"))
-            },
+        device_info = {
+            "identifiers": {(DOMAIN, self._attributes.get("slug"))},
             "name": self.name,
             "manufacturer": "Growstuff",
             "model": "Planting",
             "sw_version": "0.0.1",
         }
+        if self._garden_device:
+            device_info["via_device"] = (DOMAIN, self._garden_device.id)
+        return device_info
 
 
 # Specific sensor
@@ -135,10 +165,10 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:sprout"
 
-    def __init__(self, data, session):
+    def __init__(self, data, session, garden_device=None):
         """Initialize the sensor."""
-        super().__init__(planting, session)
-        self.entity_id = "sensor.planting_" + planting.get("id")
+        super().__init__(data, session, garden_device)
+        self.entity_id = "sensor.planting_" + data.get("id")
 
     @property
     def unique_id(self):
@@ -162,34 +192,6 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     def unit_of_measurement(self):
         """Return the unit this state is expressed in."""
         return "%"
-
-
-class GrowstuffGardenSensor(GrowstuffEntity):
-    """Growstuff Garden Sensor."""
-
-    _attr_has_entity_name = True
-    _attr_icon = "mdi:flower"
-
-    def __init__(self, garden, session):
-        """Initialize the sensor."""
-        super().__init__(garden, session)
-        self.entity_id = "sensor.garden_" + garden.get("id")
-
-    @property
-    def unique_id(self):
-        """Return the ID of the sensor."""
-        return self.entity_id
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._attributes.get("name")
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        # The API doesn't provide a direct state for gardens, so we'll use the name.
-        return self._attributes.get("name")
 
 
 class GrowstuffHarvestSensor(GrowstuffEntity):
