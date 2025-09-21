@@ -8,13 +8,19 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries, exceptions
+from homeassistant.const import CONF_API_TOKEN, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA = vol.Schema({("member"): str})
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_USERNAME): str,
+        vol.Required(CONF_API_TOKEN): str,
+    }
+)
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
@@ -23,10 +29,14 @@ async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     """
     # Validate the data can be used to set up a connection.
 
-    if len(data["member"]) < 3:
-       raise InvalidData
+    if len(data[CONF_USERNAME]) < 3:
+        raise InvalidData
 
-    return {"title": data["member"]}
+    if len(data[CONF_API_TOKEN]) < 16:
+        raise InvalidData
+
+    # Return info that you want to store in the config entry.
+    return {"title": data[CONF_USERNAME]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -68,6 +78,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
 
+
 class InvalidData(exceptions.HomeAssistantError):
     """Error to indicate we bad data."""
-

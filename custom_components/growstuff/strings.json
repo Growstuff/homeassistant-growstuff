@@ -3,8 +3,8 @@
     "step": {
       "user": {
         "data": {
-          "member": "[%key:common::config_flow::data::username%]",
-          "api_key": "[%key:common::config_flow::data::password%]"
+          "username": "Member ID",
+          "api_token": "API Token"
         }
       }
     },
