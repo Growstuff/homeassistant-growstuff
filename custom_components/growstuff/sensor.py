@@ -82,8 +82,11 @@ async def add_entities_for_type(
     entities = []
     for item in data.get("data"):
         if entity_type == "plantings":
-            garden_id = item.get("relationships").get("garden").get("data").get("id")
-            entities.append(GrowstuffPlantingSensor(item, session, gardens.get(garden_id)))
+            garden = item.get("relationships").get("garden")
+            # As of https://github.com/Growstuff/growstuff/pull/4272 this will start populating.
+            if garden.get("data"):
+                garden_id = garden.get("data").get("id")
+                entities.append(GrowstuffPlantingSensor(item, session, gardens.get(garden_id)))
         elif entity_type == "harvests":
             entities.append(GrowstuffHarvestSensor(item, session))
         elif entity_type == "seeds":
