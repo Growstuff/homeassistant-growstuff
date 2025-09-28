@@ -58,9 +58,9 @@ class GrowstuffTodoListEntity(TodoListEntity):
 
     _attr_has_entity_name = True
     _attr_supported_features = (
-        TodoListEntityFeature.UPDATE_TODO_ITEM |
-        TodoListEntityFeature.SET_DUE_DATE_ON_ITEM |
-        TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
+        TodoListEntityFeature.UPDATE_TODO_ITEM
+        | TodoListEntityFeature.SET_DUE_DATE_ON_ITEM
+        | TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
     )
 
     def __init__(self, member_id, api_key, session):
