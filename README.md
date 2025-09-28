@@ -11,6 +11,7 @@ Welcome to the **Growstuff Home Assistant Integration** repository! This project
 ## Feature
 - **Plantings:** Visiblity of progress
 - **Activities:** As todo items
+- **Gardens**: Individual beds as specific areas
 ---
 
 ## Getting Started
