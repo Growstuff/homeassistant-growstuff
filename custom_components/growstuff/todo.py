@@ -56,6 +56,9 @@ class GrowstuffTodoListEntity(TodoListEntity):
     """A class to display a growstuff todo list."""
 
     _attr_has_entity_name = True
+    _attr_supported_features = (
+        TodoListEntityFeature.UPDATE_TODO_ITEM
+    )
 
     def __init__(self, member_id, api_key, session):
         """Initialize the sensor."""
