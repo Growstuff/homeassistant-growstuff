@@ -131,7 +131,8 @@ class GrowstuffTodoListEntity(TodoListEntity):
                 items.append(
                     TodoItem(
                         uid=item.get("id"),
-                        summary=attributes.get("description"),
+                        summary=attributes.get("name"),
+                        description=attributes.get("description"),
                         status=status,
                         due=due,
                     )
