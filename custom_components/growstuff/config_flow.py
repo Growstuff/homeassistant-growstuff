@@ -14,7 +14,12 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA = vol.Schema({("member"): str})
+DATA_SCHEMA = vol.Schema(
+    {
+        "member": str,
+        "api_key": str,
+    }
+)
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
