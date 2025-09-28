@@ -29,6 +29,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Growstuff todo platform."""
     session = async_get_clientsession(hass)
+    api_key = config_entry.data.get("api_key")
     member_name = config_entry.data.get("member")
     member_url = f"{_API_URL}/members?filter[login-name]={member_name}"
 
@@ -48,7 +49,7 @@ async def async_setup_entry(
     member = member_result[0]
     member_id = member.get("id")
 
-    async_add_entities([GrowstuffTodoListEntity(member_id, session)])
+    async_add_entities([GrowstuffTodoListEntity(member_id, api_key, session)])
 
 
 class GrowstuffTodoListEntity(TodoListEntity):
@@ -56,9 +57,10 @@ class GrowstuffTodoListEntity(TodoListEntity):
 
     _attr_has_entity_name = True
 
-    def __init__(self, member_id, session):
+    def __init__(self, member_id, api_key, session):
         """Initialize the sensor."""
         self._member_id = member_id
+        self._api_key = api_key
         self._session = session
         self._attr_name = "Growstuff Gardening Activities"
         self._attr_unique_id = f"growstuff_{member_id}_todo"
@@ -86,7 +88,11 @@ class GrowstuffTodoListEntity(TodoListEntity):
                 },
             }
         }
-        async with self._session.patch(url, json=payload) as response:
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/vnd.api+json",
+        }
+        async with self._session.patch(url, json=payload, headers=headers) as response:
             if response.status != 200:
                 _LOGGER.error(f"Failed to update activity: {response.status}")
                 return
