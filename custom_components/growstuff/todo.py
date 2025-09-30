@@ -97,7 +97,8 @@ class GrowstuffTodoListEntity(TodoListEntity):
             }
         }
         headers = {
-            "Authorization": f"Token token={self._api_key}",
+            "Authorization": f"Bearer {self._api_key}",
+            "Accept": "application/vnd.api+json",
             "Content-Type": "application/vnd.api+json",
         }
         async with self._session.patch(url, json=payload, headers=headers) as response:
