@@ -104,6 +104,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
         async with self._session.patch(url, json=payload, headers=headers) as response:
             if response.status != 200:
                 _LOGGER.error(f"Failed to update activity: {response.status}")
+                _LOGGER.debug(f"Response: {response.body}")
                 return
             await self.async_update()
 
@@ -114,6 +115,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
             async with self._session.delete(url) as response:
                 if response.status != 204:
                     _LOGGER.error(f"Failed to delete activity: {response.status}")
+                    _LOGGER.debug(f"Response: {response.body}")
                     return
         await self.async_update()
 
@@ -125,6 +127,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
             async with self._session.get(url) as response:
                 if response.status != 200:
                     _LOGGER.error(f"Failed to fetch activities: {response.status}")
+                    _LOGGER.debug(f"Response: {response.body}")
                     return
                 data = await response.json()
             for item in data.get("data", []):
