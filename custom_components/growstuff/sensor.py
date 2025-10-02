@@ -1,6 +1,7 @@
 """HA component to import plantings status from growstuff.org."""
 
 import logging
+from datetime import timedelta
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import device_registry as dr
 
@@ -15,6 +16,8 @@ from .const import DOMAIN, _API_URL, SENSOR_TYPES
 from .entity import GrowstuffEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+SCAN_INTERVAL = timedelta(days=1)
 
 
 async def async_setup_entry(
