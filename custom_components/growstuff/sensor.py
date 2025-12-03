@@ -12,8 +12,9 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
-from .const import DOMAIN, _API_URL, SENSOR_TYPES
+from .const import DOMAIN, SENSOR_TYPES
 from .entity import GrowstuffEntity
+from .api.client import GrowstuffApiClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,96 +28,60 @@ async def async_setup_entry(
 ) -> None:
     """Set up all entities."""
     session = async_get_clientsession(hass)
+    api_client = GrowstuffApiClient(session)
+
     member_name = config_entry.data.get("member")
-    member_url = f"{_API_URL}/members?filter[login-name]={member_name}"
-
-    _LOGGER.debug("Fetching " + member_url)
-    async with session.get(member_url) as response:
-        if response.status != 200:
-            raise homeassistant.exceptions.ConfigEntryNotReady(
-                f"Member not found, check configuration: {response.status}"
-            )
-        member_result = (await response.json()).get("data")
-
-    if len(member_result) == 0:
+    member = await api_client.get_member(member_name)
+    if not member:
         raise homeassistant.exceptions.ConfigEntryNotReady(
             "Member not found, check configuration"
         )
-
-    member = member_result[0]
     member_id = member.get("id")
 
     device_registry = dr.async_get(hass)
-    gardens_url = f"{_API_URL}/gardens?filter[owner-id]={member_id}"
+    gardens_result = await api_client.get_gardens(member_id)
     gardens = {}
-    async with session.get(gardens_url) as response:
-        if response.status == 200:
-            data = await response.json()
-            for garden in data.get("data"):
-                device = device_registry.async_get_or_create(
-                    config_entry_id=config_entry.entry_id,
-                    identifiers={(DOMAIN, garden.get("id"))},
-                    name=garden.get("attributes").get("name"),
-                    manufacturer="Growstuff",
-                    suggested_area=garden.get("attributes").get("name"),
-                )
-                gardens[garden.get("id")] = device
-
-    for entity_type in SENSOR_TYPES:
-        url = f"{_API_URL}/{entity_type}?filter[owner-id]={member_id}"
-        # TODO: Activities may want to include all activities
-        if entity_type == "plantings" or entity_type == "activities" or entity_type == "seeds":
-            url += "&filter[finished]=false"
-        await add_entities_for_type(
-            url, entity_type, async_add_entities, session, gardens
+    for garden in gardens_result:
+        device = device_registry.async_get_or_create(
+            config_entry_id=config_entry.entry_id,
+            identifiers={(DOMAIN, garden.get("id"))},
+            name=garden.get("attributes").get("name"),
+            manufacturer="Growstuff",
+            suggested_area=garden.get("attributes").get("name"),
         )
-
-
-async def add_entities_for_type(
-    url, entity_type, async_add_entities, session, gardens
-):
-    """Add entities for a given type until we added them all."""
-    _LOGGER.debug(f"Fetching {entity_type} from {url}")
-    async with session.get(url) as response:
-        if response.status != 200:
-            _LOGGER.error(f"Failed to fetch {entity_type}: {response.status}")
-            return
-        data = await response.json()
+        gardens[garden.get("id")] = device
 
     entities = []
-    for item in data.get("data"):
+    for entity_type in SENSOR_TYPES:
         if entity_type == "plantings":
-            garden = item.get("relationships").get("garden")
-            # As of https://github.com/Growstuff/growstuff/pull/4272 this will start populating.
-            if garden.get("data"):
-                garden_id = garden.get("data").get("id")
-                entities.append(GrowstuffPlantingSensor(item, session, gardens.get(garden_id)))
+            for item in await api_client.get_plantings(member_id):
+                garden = item.get("relationships").get("garden")
+                if garden and garden.get("data"):
+                    garden_id = garden.get("data").get("id")
+                    entities.append(GrowstuffPlantingSensor(item, api_client, gardens.get(garden_id)))
         elif entity_type == "harvests":
-            entities.append(GrowstuffHarvestSensor(item, session))
+            for item in await api_client.get_harvests(member_id):
+                entities.append(GrowstuffHarvestSensor(item, api_client))
         elif entity_type == "seeds":
-            entities.append(GrowstuffSeedSensor(item, session))
+            for item in await api_client.get_seeds(member_id):
+                entities.append(GrowstuffSeedSensor(item, api_client))
     async_add_entities(entities)
-    links = data.get("links")
-    if "next" in links and links.get("next"):
-        await add_entities_for_type(
-            links.get("next"), entity_type, async_add_entities, session, gardens
-        )
 
 
 class GrowstuffSensorEntity(GrowstuffEntity, SensorEntity):
     """Base class for Growstuff sensors."""
 
-    def __init__(self, data, session):
+    def __init__(self, data, client):
         """Initialize the sensor."""
-        super().__init__(data, session)
+        super().__init__(data, client)
         self.entity_id = "sensor.growstuff_" + data.get("id")
 
 
 # Device
 class GrowstuffPlantingEntity(GrowstuffSensorEntity):
-    def __init__(self, data, session, garden_device=None):
+    def __init__(self, data, client, garden_device=None):
         """Initialize the sensor."""
-        super().__init__(data, session)
+        super().__init__(data, client)
         self._garden_device = garden_device
 
     @property
@@ -141,9 +106,9 @@ class GrowstuffPlantingSensor(GrowstuffPlantingEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:sprout"
 
-    def __init__(self, data, session, garden_device=None):
+    def __init__(self, data, client, garden_device=None):
         """Initialize the sensor."""
-        super().__init__(data, session, garden_device)
+        super().__init__(data, client, garden_device)
         self.entity_id = "sensor.planting_" + data.get("id")
 
     @property
@@ -176,9 +141,9 @@ class GrowstuffHarvestSensor(GrowstuffSensorEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:food-apple"
 
-    def __init__(self, harvest, session):
+    def __init__(self, harvest, client):
         """Initialize the sensor."""
-        super().__init__(harvest, session)
+        super().__init__(harvest, client)
         self.entity_id = "sensor.harvest_" + harvest.get("id")
 
     @property
@@ -208,9 +173,9 @@ class GrowstuffSeedSensor(GrowstuffSensorEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:seed"
 
-    def __init__(self, seed, session):
+    def __init__(self, seed, client):
         """Initialize the sensor."""
-        super().__init__(seed, session)
+        super().__init__(seed, client)
         self.entity_id = "sensor.seed_" + seed.get("id")
 
     @property

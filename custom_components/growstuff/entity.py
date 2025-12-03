@@ -2,18 +2,20 @@
 import logging
 from homeassistant.helpers.entity import Entity
 
+from .api.client import GrowstuffApiClient
+
 _LOGGER = logging.getLogger(__name__)
 
 
 class GrowstuffEntity(Entity):
     """Base class for Growstuff entities."""
 
-    def __init__(self, data, session):
+    def __init__(self, data: dict, client: GrowstuffApiClient):
         """Initialize the sensor."""
         self._links = data.get("links")
         self._attributes = data.get("attributes")
         self._relationships = data.get("relationships")
-        self._session = session
+        self._client = client
         self._id = data.get("id")
 
     @property
@@ -33,10 +35,9 @@ class GrowstuffEntity(Entity):
     async def async_update(self):
         """Get the latest data from Growstuff and update the states."""
         _LOGGER.debug("Fetching " + self._url())
-        async with self._session.get(self._url()) as response:
-            if response.status == 200:
-                data = await response.json()
-                item = data.get("data")
-                self._links = item.get("links")
-                self._attributes = item.get("attributes")
-                self._relationships = item.get("relationships")
+        data = await self._client.get_url(self._url())
+        if data:
+            item = data.get("data")
+            self._links = item.get("links")
+            self._attributes = item.get("attributes")
+            self._relationships = item.get("relationships")
