@@ -64,8 +64,8 @@ async def async_setup_entry(
 
     for entity_type in SENSOR_TYPES:
         url = f"{_API_URL}/{entity_type}?filter[owner-id]={member_id}"
-        # TODO: Activities may want to include all activities
-        if entity_type == "plantings" or entity_type == "activities" or entity_type == "seeds":
+        # TODO: Jobs may want to include all jobs
+        if entity_type == "plantings" or entity_type == "jobs" or entity_type == "seeds":
             url += "&filter[finished]=false"
         await add_entities_for_type(
             url, entity_type, async_add_entities, session, gardens

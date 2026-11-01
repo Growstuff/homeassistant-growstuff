@@ -68,7 +68,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
         self._member_id = member_id
         self._api_key = api_key
         self._session = session
-        self._attr_name = "Growstuff Gardening Activities"
+        self._attr_name = "Growstuff Gardening Jobs"
         self._attr_unique_id = f"growstuff_{member_id}_todo"
         self._items: list[TodoItem] = []
 
@@ -84,13 +84,14 @@ class GrowstuffTodoListEntity(TodoListEntity):
     async def async_update_todo_item(self, item: TodoItem) -> None:
         """Update a todo item."""
         uid = item.uid
-        url = f"{_API_URL}/activities/{uid}"
+        url = f"{_API_URL}/jobs/{uid}"
+        due_date = item.due.isoformat() if item.due else None
         payload = {
             "data": {
-                "type": "activities",
+                "type": "jobs",
                 "id": uid,
                 "attributes": {
-                    "due": item.due,
+                    "due-date": due_date,
                     "description": item.description,
                     "finished": item.status == TodoItemStatus.COMPLETED,
                 },
@@ -103,7 +104,7 @@ class GrowstuffTodoListEntity(TodoListEntity):
         }
         async with self._session.patch(url, json=payload, headers=headers) as response:
             if response.status != 200:
-                _LOGGER.error(f"Failed to update activity: {response.status}")
+                _LOGGER.error(f"Failed to update job: {response.status}")
                 _LOGGER.debug(f"Response: {response.body}")
                 return
             await self.async_update()
@@ -111,22 +112,22 @@ class GrowstuffTodoListEntity(TodoListEntity):
     async def async_delete_todo_items(self, uids: list[str]) -> None:
         """Delete todo items."""
         for uid in uids:
-            url = f"{_API_URL}/activities/{uid}"
+            url = f"{_API_URL}/jobs/{uid}"
             async with self._session.delete(url) as response:
                 if response.status != 204:
-                    _LOGGER.error(f"Failed to delete activity: {response.status}")
+                    _LOGGER.error(f"Failed to delete job: {response.status}")
                     _LOGGER.debug(f"Response: {response.body}")
                     return
         await self.async_update()
 
     async def async_update(self) -> None:
         """Update the items in the todo list."""
-        url = f"{_API_URL}/activities?filter[owner-id]={self._member_id}"
+        url = f"{_API_URL}/jobs?filter[owner-id]={self._member_id}"
         items = []
         while url:
             async with self._session.get(url) as response:
                 if response.status != 200:
-                    _LOGGER.error(f"Failed to fetch activities: {response.status}")
+                    _LOGGER.error(f"Failed to fetch jobs: {response.status}")
                     _LOGGER.debug(f"Response: {response.body}")
                     return
                 data = await response.json()
