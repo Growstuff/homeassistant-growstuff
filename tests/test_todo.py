@@ -19,10 +19,11 @@ MEMBER_ID = "123"
 MEMBER_NAME = "test-member"
 
 
-def create_mock_response(status=200, json_data=None):
+def create_mock_response(status=200, json_data=None, text_data=""):
     """Create a mock aiohttp response context manager."""
     response = AsyncMock()
     response.status = status
+    response.text = AsyncMock(return_value=text_data)
     if json_data is not None:
         response.json = AsyncMock(return_value=json_data)
     cm = MagicMock()
@@ -176,3 +177,44 @@ async def test_async_delete_todo_items_deletes_jobs(hass: HomeAssistant) -> None
     await entity.async_delete_todo_items(["99"])
 
     session.delete.assert_called_once_with("https://www.growstuff.org/api/v1/jobs/99")
+
+
+async def test_async_update_error_response(hass: HomeAssistant) -> None:
+    """Test error response during async_update logs text without AttributeError."""
+    cm, _ = create_mock_response(500, text_data="Internal Server Error")
+    session = MagicMock()
+    session.get.return_value = cm
+
+    entity = GrowstuffTodoListEntity(MEMBER_ID, "api_token_123", session)
+    await entity.async_update()
+
+    assert entity.todo_items == []
+
+
+async def test_async_update_todo_item_error_response(hass: HomeAssistant) -> None:
+    """Test error response during async_update_todo_item logs text without AttributeError."""
+    cm_patch, _ = create_mock_response(400, text_data="Bad Request")
+    session = MagicMock()
+    session.patch.return_value = cm_patch
+
+    entity = GrowstuffTodoListEntity(MEMBER_ID, "api_token_123", session)
+    item = TodoItem(
+        uid="42",
+        summary="Prune basil",
+        description="Top the basil plant",
+        status=TodoItemStatus.COMPLETED,
+    )
+
+    await entity.async_update_todo_item(item)
+    session.get.assert_not_called()
+
+
+async def test_async_delete_todo_items_error_response(hass: HomeAssistant) -> None:
+    """Test error response during async_delete_todo_items logs text without AttributeError."""
+    cm_delete, _ = create_mock_response(404, text_data="Not Found")
+    session = MagicMock()
+    session.delete.return_value = cm_delete
+
+    entity = GrowstuffTodoListEntity(MEMBER_ID, "api_token_123", session)
+    await entity.async_delete_todo_items(["99"])
+    session.get.assert_not_called()
