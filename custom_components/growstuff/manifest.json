@@ -13,5 +13,6 @@
   "quality_scale": "legacy",
   "iot_class": "cloud_polling",
   "integration_type": "service",
-  "platforms": ["sensor", "todo"]
+  "platforms": ["sensor", "todo"],
+  "logo": "https://github.com/Growstuff/growstuff/blob/main/app/assets/images/growstuff-apple-touch-icon-precomposed.png"
 }
