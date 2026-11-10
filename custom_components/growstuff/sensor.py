@@ -27,24 +27,27 @@ async def async_setup_entry(
 ) -> None:
     """Set up all entities."""
     session = async_get_clientsession(hass)
-    member_name = config_entry.data.get("member")
-    member_url = f"{_API_URL}/members?filter[login-name]={member_name}"
 
-    _LOGGER.debug("Fetching " + member_url)
-    async with session.get(member_url) as response:
-        if response.status != 200:
-            raise homeassistant.exceptions.ConfigEntryNotReady(
-                f"Member not found, check configuration: {response.status}"
-            )
-        member_result = (await response.json()).get("data")
+    runtime_data = getattr(config_entry, "runtime_data", None)
+    if runtime_data and "member_id" in runtime_data:
+        member_id = runtime_data["member_id"]
+    else:
+        member_name = config_entry.data.get("member")
+        member_url = f"{_API_URL}/members?filter[login-name]={member_name}"
 
-    if len(member_result) == 0:
-        raise homeassistant.exceptions.ConfigEntryNotReady(
-            "Member not found, check configuration"
-        )
+        _LOGGER.debug("Fetching " + member_url)
+        async with session.get(member_url) as response:
+            if response.status != 200:
+                _LOGGER.error(f"Failed to fetch member: {response.status}")
+                return
+            member_result = (await response.json()).get("data")
 
-    member = member_result[0]
-    member_id = member.get("id")
+        if not member_result:
+            _LOGGER.error("Member not found, check configuration")
+            return
+
+        member = member_result[0]
+        member_id = member.get("id")
 
     device_registry = dr.async_get(hass)
     gardens_url = f"{_API_URL}/gardens?filter[owner-id]={member_id}"
