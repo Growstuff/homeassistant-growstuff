@@ -32,8 +32,33 @@ def create_mock_response(status=200, json_data=None, text_data=""):
     return cm, response
 
 
+async def test_async_setup_entry_with_runtime_data(hass: HomeAssistant) -> None:
+    """Test setting up todo platform when runtime_data contains member_id."""
+    mock_session = MagicMock()
+    with patch(
+        "custom_components.growstuff.todo.async_get_clientsession",
+        return_value=mock_session,
+    ):
+        entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG["data"])
+        entry.add_to_hass(hass)
+        entry.runtime_data = {"member_id": MEMBER_ID}
+
+        added_entities = []
+
+        def mock_add_entities(entities):
+            added_entities.extend(entities)
+
+        await async_setup_entry(hass, entry, mock_add_entities)
+
+    assert len(added_entities) == 1
+    entity = added_entities[0]
+    assert isinstance(entity, GrowstuffTodoListEntity)
+    assert entity.name == "Growstuff Gardening Jobs"
+    assert entity.unique_id == f"growstuff_{MEMBER_ID}_todo"
+
+
 async def test_async_setup_entry(hass: HomeAssistant) -> None:
-    """Test setting up todo platform adds the entity with jobs endpoint."""
+    """Test setting up todo platform adds the entity with jobs endpoint fallback."""
     cm, _ = create_mock_response(
         200,
         {
@@ -67,6 +92,29 @@ async def test_async_setup_entry(hass: HomeAssistant) -> None:
     assert isinstance(entity, GrowstuffTodoListEntity)
     assert entity.name == "Growstuff Gardening Jobs"
     assert entity.unique_id == f"growstuff_{MEMBER_ID}_todo"
+
+
+async def test_async_setup_entry_error_fallback(hass: HomeAssistant) -> None:
+    """Test setting up todo platform when member fetch fails in fallback."""
+    cm, _ = create_mock_response(404)
+    mock_session = MagicMock()
+    mock_session.get.return_value = cm
+
+    with patch(
+        "custom_components.growstuff.todo.async_get_clientsession",
+        return_value=mock_session,
+    ):
+        entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG["data"])
+        entry.add_to_hass(hass)
+
+        added_entities = []
+
+        def mock_add_entities(entities):
+            added_entities.extend(entities)
+
+        await async_setup_entry(hass, entry, mock_add_entities)
+
+    assert len(added_entities) == 0
 
 
 async def test_async_update_fetches_jobs(hass: HomeAssistant) -> None:
