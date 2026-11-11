@@ -271,5 +271,5 @@ async def test_async_delete_todo_items_error_response(hass: HomeAssistant) -> No
 
 
 def test_todo_scan_interval() -> None:
-    """Test that SCAN_INTERVAL in todo platform is 1 minute."""
-    assert SCAN_INTERVAL == timedelta(minutes=1)
+    """Test that SCAN_INTERVAL in todo platform is 1 day."""
+    assert SCAN_INTERVAL == timedelta(days=1)

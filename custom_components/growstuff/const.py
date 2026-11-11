@@ -4,7 +4,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "growstuff"
 _API_URL = "https://www.growstuff.org/api/v1"
-SCAN_INTERVAL = timedelta(minutes=1)
+SCAN_INTERVAL = timedelta(days=1)
 
 PLATFORMS = [Platform.SENSOR, Platform.TODO]
 
