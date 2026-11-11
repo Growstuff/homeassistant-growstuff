@@ -1,6 +1,6 @@
 """Todo platform for the Growstuff integration."""
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import cast
 
@@ -21,6 +21,8 @@ from .const import DOMAIN, _API_URL
 from .entity import GrowstuffEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+SCAN_INTERVAL = timedelta(days=1)
 
 
 async def async_setup_entry(
