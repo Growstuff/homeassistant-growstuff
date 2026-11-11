@@ -7,8 +7,10 @@ from homeassistant.components.todo import TodoItem, TodoItemStatus
 from homeassistant.core import HomeAssistant
 
 from custom_components.growstuff.const import DOMAIN
+from datetime import timedelta
 from custom_components.growstuff.todo import (
     GrowstuffTodoListEntity,
+    SCAN_INTERVAL,
     async_setup_entry,
 )
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -266,3 +268,8 @@ async def test_async_delete_todo_items_error_response(hass: HomeAssistant) -> No
     entity = GrowstuffTodoListEntity(MEMBER_ID, "api_token_123", session)
     await entity.async_delete_todo_items(["99"])
     session.get.assert_not_called()
+
+
+def test_todo_scan_interval() -> None:
+    """Test that SCAN_INTERVAL in todo platform is 1 minute."""
+    assert SCAN_INTERVAL == timedelta(minutes=1)
